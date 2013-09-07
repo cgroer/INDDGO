@@ -3064,7 +3064,7 @@ void print_WIS_results(FILE *stream, TDTree *T, DP_info *info)
 		if(!info->noheader)
 			fprintf(stream,"file n m td_type PC/NPC MN/NMN FC/NFC width ref_width num_tnodes num_leafs leaf_t "
 			"nonleaf_t intro_t forget_t join_t tot_pc_entries tot_entries tot_ref_pc_entries tot_ref_entries mem_est "
-			"recon_t avg_pc_perc obj\n");
+			"recon_t avg_pc_perc obj TD_t DP_t\n");
 		char td_type[3];
 		if (info->gavril)
 			sprintf(td_type, "GV");
@@ -3113,21 +3113,24 @@ void print_WIS_results(FILE *stream, TDTree *T, DP_info *info)
 		fprintf(stream, "%3.3f ", info->reconstruct_time);
 		fprintf(stream, "%0.3f ", info->avg_pc_proportion);
 		// obj is last entry
-		fprintf(stream, "%d\n", info->opt_obj);
+		fprintf(stream, "%d ", info->opt_obj);
+		// adding TD_time and DP_time
+		fprintf(stream, "%3.3f %3.3f\n",info->TD_time, info->DP_time);
 	}
 	else
 	{
 
 		if(!info->noheader)
 		{
-			fprintf(stream,"file n m w obj");
+			fprintf(stream,"file n m w obj TD_t DP_t memKB");
 			if(info->mem_estimate>0)
 				fprintf(stream," num_pc_entries num_entries est_entries\n");
 			else
 				fprintf(stream,"\n");
 		}
-		fprintf(stream,"%s %d %d %d %d",info->DIMACS_file, T->G->get_num_nodes(),
-			T->G->get_num_edges(), T->width, info->opt_obj);
+		fprintf(stream,"%s %d %d %d %d %3.3f %3.3f %d",info->DIMACS_file, T->G->get_num_nodes(),
+			T->G->get_num_edges(), T->width, info->opt_obj, info->TD_time, info->DP_time,
+			getHWmem());
 		if(info->mem_estimate>0)
 			fprintf(stream," %lld %lld %lld\n",info->orig_total_pc_table_entries, 
 			info->orig_total_table_entries, (unsigned long long)info->mem_estimate);

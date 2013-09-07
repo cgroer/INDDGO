@@ -100,7 +100,10 @@ int main(int argc, char **argv)
 		}
 
 		// Create the tree decomposition using the options
+		clock_t TD_start=clock(), TD_stop;
 		create_tree_decomposition(&info, G, &T);
+		TD_stop = clock();
+		info.TD_time=(double)(TD_stop - TD_start)/CLOCKS_PER_SEC ;
 
 		if (info.width)
 		{
@@ -139,7 +142,7 @@ int main(int argc, char **argv)
 		else
 			T->post_order_walk(&walk);
 
-		if (T->info->verbose)
+		if (T->info->very_verbose)
 		{
 			print_message(0, "WALK:\n");
 			int walk_size=(int) walk.size();
@@ -176,7 +179,8 @@ int main(int argc, char **argv)
 		double dstart = clock();
 		for (i = 0; i < T->num_tree_nodes; i++)
 			T->compute_table(compute_weighted_ind_set_table, walk[i]);
-
+		double dstop =clock();
+		info.DP_time=(double)(dstop - dstart)/CLOCKS_PER_SEC ;
 		// Store and reset info's table stats 
 		info.orig_total_pc_table_entries = info.total_pc_table_entries;
 		info.orig_total_table_entries = info.total_table_entries;

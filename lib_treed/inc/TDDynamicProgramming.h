@@ -63,7 +63,8 @@ public:
 	int *aux_info;
 
 	// statistics on the DP computation
-	double leaf_time, introduce_time, forget_time, join_time, nonleaf_time, reconstruct_time; 
+	double leaf_time, introduce_time, forget_time, join_time, nonleaf_time, reconstruct_time,
+		DP_time, TD_time;
 	clock_t start, stop;
 	int opt_obj;
 	int process_DP_info(int num_args, char **args);
