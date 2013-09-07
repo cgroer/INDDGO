@@ -7,7 +7,4 @@ by just editing what is in there now as that is specific
 to a particular machine with the paths, etc.
 
 Here is a compile line for CPX_solve_wis :
- g++ CPX_solve_wis.cpp -O2 -g  -I../../lib_graphd/inc
--I/opt/ibm/ILOG/CPLEX_Studio125/cplex/include/
--L/opt/ibm/ILOG/CPLEX_Studio125/cplex/lib/x86-64_sles10_4.1/static_pic/
--L../../lib/ -lgraphd -lpthread -lcplex -lglpk
+ g++ CPX_solve_wis.cpp -O2 -g  -I../../lib_graphd/inc -I/opt/ibm/ILOG/CPLEX_Studio125/cplex/include/ -L/opt/ibm/ILOG/CPLEX_Studio125/cplex/lib/x86-64_sles10_4.1/static_pic/ -L../../lib/ -lgraphd -lpthread -lcplex -lglpk
