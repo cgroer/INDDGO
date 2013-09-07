@@ -162,8 +162,9 @@ void create_mps_file(char *gmpl_file, char *mps_file, bool verbose)
 
 void usage(char *str)
 {
-	fprintf(stderr,"%s <DIMACS_file> <max_seconds> [-n num_threads]\n"
-		"\t Uses CPLEX with num_threads to solve WIS with max_seconds time limit\n",str);
+	fprintf(stderr,"%s <DIMACS_file> <max_seconds> [-n num_threads -v]\n"
+		"\t Uses CPLEX with num_threads to solve WIS with max_seconds time limit\n"
+		"\t -v will turn CPX terminal on\n",str);
 	exit(-1);
 }
 
@@ -175,11 +176,16 @@ int main(int   argc,char *argv[])
 	// set time limit
 	int max_secs=atoi(argv[2]);
 	int num_threads=-1;
+	bool verbose=false;
 	if(argc>=4)
 	{
 		for(int i=3;i<argc;i++)
+		{
 			if(strcmp(argv[i],"-n")==0)
 				num_threads=atoi(argv[i+1]);
+			if(strcmp(argv[i],"-v")==0)
+				verbose=true;
+		}
 	}
 
 	// Load the graph from DIMACS_file
@@ -206,9 +212,11 @@ int main(int   argc,char *argv[])
 	env = CPXopenCPLEX (&status);
 	check_CPX_status("CPXopenCPLEX",status);
 
-	CPXsetintparam (env, CPX_PARAM_SCRIND, CPX_OFF);
+	if(!verbose)
+		CPXsetintparam (env, CPX_PARAM_SCRIND, CPX_OFF);
+	else
+		CPXsetintparam (env, CPX_PARAM_SCRIND, CPX_ON);
 
-	clock_t start=clock(),stop;
 	CPXLPptr mip;
 	mip=CPXcreateprob(env,&status,mps_file);
 	status = CPXreadcopyprob (env, mip, mps_file, NULL);
@@ -222,11 +230,14 @@ int main(int   argc,char *argv[])
 	int num_cols=CPXgetnumcols(env,mip);
 	int num_rows=CPXgetnumrows(env,mip);
 
+	// start timer and solve problem
+	clock_t start=clock(),stop;
 	int mip_status=CPXmipopt(env,mip);
+	stop=clock();
 	double obj;
 	CPXgetobjval(env,mip,&obj);
 	int objval=(int)obj;
-	stop=clock();
+	
 	fprintf(stdout,"%s %d %d %d %d %d %3.3f\n",DIMACS_file,num_cols, num_rows,mip_status,
 		-objval,getHWmem(),(double)(stop-start)/CLOCKS_PER_SEC);  
 	fflush(stdout);
