@@ -30,7 +30,7 @@
 #include "orbtimer.h"
 #else
 #define ORB_t clock_t
-#define ORB_seconds(x,y) "lame" 
+#define ORB_seconds(x,y) "nothing" 
 #define ORB_calibrate()
 #define ORB_read(x) 
 #endif
@@ -135,10 +135,6 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    if(!seed){
-        // Set the seed to a rand int in 0,2^24
-        seed = Graph::rand_int(0,0xffffff);
-    }
     // Spin the RNG seed times
     for(int ss = 0; ss < seed; ss++){
         Graph::lcgrand(0);
