@@ -178,7 +178,20 @@ int main(int argc, char **argv)
 		// handles NULLs
 		double dstart = clock();
 		for (i = 0; i < T->num_tree_nodes; i++)
+		{
+			if(T->info->max_kB_memory)
+			{
+				int currkB=getHWmem();
+				if(currkB > T->info->max_kB_memory)
+				{
+					// We have exceeded the maximum memory
+					fprintf(stderr,"Current memory usage %d kB exceeded provided max %d kB after %d tree nodes\n"
+						"Aborting computation\n",currkB, T->info->max_kB_memory);
+					exit(-1);
+				}
+			}
 			T->compute_table(compute_weighted_ind_set_table, walk[i]);
+		}
 		double dstop =clock();
 		info.DP_time=(double)(dstop - dstart)/CLOCKS_PER_SEC ;
 		// Store and reset info's table stats 

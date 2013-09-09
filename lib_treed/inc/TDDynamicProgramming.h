@@ -55,6 +55,7 @@ public:
 		parmetis, pbag, noheader;
 
 	int elim_order_type, root_node, start_v, max_width;
+	int max_kB_memory;
 	// CSG adding orig_ fields to handle stats for refined tree
 	unsigned long long total_table_entries, total_pc_table_entries, 
 		orig_total_table_entries, orig_total_pc_table_entries;

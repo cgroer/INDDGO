@@ -79,6 +79,7 @@ DP_info::DP_info()
 	// set obj val to 0
 	opt_obj = 0;
 	aux_info = NULL;
+	this->max_kB_memory=0;
 };
 
 /**

@@ -38,7 +38,7 @@ int parseLine(char *line){
 
 int getHWmem(){ 
 #if WIN32
-	return -1;
+	return 0;
 #endif
 	//Note: this value is in KB!
     FILE *file = fopen("/proc/self/status", "r");

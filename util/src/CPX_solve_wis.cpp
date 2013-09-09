@@ -172,11 +172,14 @@ int main(int   argc,char *argv[])
 {
 	if(argc<3)
 		usage(argv[0]);
+	char mps_file[100];
+	char mod_file[100];
+	int status;
 	char *DIMACS_file=argv[1];
 	// set time limit
 	int max_secs=atoi(argv[2]);
 	int num_threads=-1;
-	bool verbose=false;
+	bool verbose=false, has_mps=false;
 	if(argc>=4)
 	{
 		for(int i=3;i<argc;i++)
@@ -185,28 +188,33 @@ int main(int   argc,char *argv[])
 				num_threads=atoi(argv[i+1]);
 			if(strcmp(argv[i],"-v")==0)
 				verbose=true;
+			if(strcmp(argv[i],"-mps")==0)
+			{
+				sprintf(mps_file,"%s",argv[i+1]);
+				has_mps=true;
+			}
 		}
 	}
 
-	// Load the graph from DIMACS_file
-	Graph::VertexWeightedGraph *G;
-	Graph::GraphCreatorFile creator;
-	creator.set_file_name(DIMACS_file);
-	creator.set_graph_type("DIMACS");
-	G = creator.create_weighted_mutable_graph();
+	if(!has_mps)
+	{
+		// Load the graph from DIMACS_file
+		Graph::VertexWeightedGraph *G;
+		Graph::GraphCreatorFile creator;
+		creator.set_file_name(DIMACS_file);
+		creator.set_graph_type("DIMACS");
+		G = creator.create_weighted_mutable_graph();
 
-	char mps_file[100], mod_file[100];
-	
-	int status;
-	fprintf(stderr,"G has %d nodes, %d edges\n",G->get_num_nodes(),
-		G->get_num_edges());
+		fprintf(stderr,"G has %d nodes, %d edges\n",G->get_num_nodes(),
+			G->get_num_edges());
 
-	// Write a GMPL model
-	sprintf(mod_file,"%s.mod",DIMACS_file);
-	write_ind_set_model(DIMACS_file, mod_file, G);
-	// Write mps file
-	sprintf(mps_file,"%s.mps",DIMACS_file);
-	create_mps_file(mod_file,mps_file,false);
+		// Write a GMPL model
+		sprintf(mod_file,"%s.mod",DIMACS_file);
+		write_ind_set_model(DIMACS_file, mod_file, G);
+		// Write mps file
+		sprintf(mps_file,"%s.mps",DIMACS_file);
+		create_mps_file(mod_file,mps_file,false);
+	}
 	
 	CPXENVptr env = NULL;  
 	env = CPXopenCPLEX (&status);

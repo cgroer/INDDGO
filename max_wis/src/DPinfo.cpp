@@ -190,6 +190,8 @@ int DP_info::process_DP_info(int num_args, char **args)
 			this->max_width=atoi(args[i+1]);
 		if (strcmp(args[i],"-noheader")==0)
 			this->noheader=true;
+		if (strcmp(args[i],"-maxmem")==0)
+			this->max_kB_memory=atoi(args[i+1]);
 	}
 	// Check options
 	if(this->fix_DIMACS)
