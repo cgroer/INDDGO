@@ -150,7 +150,7 @@ int main(int argc, char **argv){
     Graph::GraphProperties prop;
     Graph::GraphWriter writer;
 
-    ORB_calibrate();
+    //ORB_calibrate();
 
     DEBUG("Graph generation loop\n");
     DEBUG("n : %d k: %d\n", ktree_n, ktree_p);
@@ -162,9 +162,9 @@ int main(int argc, char **argv){
         // Generate an n-node Graph G that is a partial k-tree derived from the k-tree
         start = clock();
         cout << "Deriving partial k-tree\n";
-        ORB_read(t1);
+        //ORB_read(t1);
         G = creator.create_random_edge_subgraph(H, ktree_p);
-        ORB_read(t2);
+        //ORB_read(t2);
         stop = clock();
         if(timings){
             print_time("Generation time", t1, t2);
@@ -188,9 +188,9 @@ int main(int argc, char **argv){
             writer.set_shuffle_seed(seed);
         }
 
-        ORB_read(t2);
+        //ORB_read(t2);
         writer.write_graph(G,filename, out_format);
-        ORB_read(t3);
+        //ORB_read(t3);
         if(timings){
             print_time("Output time", t2, t3);
             print_time("Total time", t1, t3);
