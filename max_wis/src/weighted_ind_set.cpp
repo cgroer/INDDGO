@@ -114,6 +114,7 @@ void usage(const char *s)
 		"\t -v : runs in verbose mode\n"
 		"\t -vv : runs in very verbose mode - lots of output about the ind. sets\n"
 		"\t -noheader : will not print header for output data to stdout\n"
+		"\t -maxmem <maxkB> will stop after memory usage exceeds maxkB bytes\n"
 		);
 		
 

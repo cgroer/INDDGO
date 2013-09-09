@@ -185,8 +185,9 @@ int main(int argc, char **argv)
 				if(currkB > T->info->max_kB_memory)
 				{
 					// We have exceeded the maximum memory
-					fprintf(stderr,"Current memory usage %d kB exceeded provided max %d kB after %d tree nodes\n"
-						"Aborting computation\n",currkB, T->info->max_kB_memory);
+					fprintf(stderr,"Current memory usage %d kB exceeded provided max %d kB\n"
+						"%d of %d tree nodes were processed\n"
+						"Aborting computation\n",currkB, T->info->max_kB_memory,i-1,T->num_tree_nodes);
 					exit(-1);
 				}
 			}
