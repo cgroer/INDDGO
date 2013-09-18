@@ -48,6 +48,10 @@ int DP_info::process_DP_info(int num_args, char **args)
 		if (strcmp(args[i], "-lower_bounds")==0)
 			this->lower_bounds=true;
 		// ELIM ORDER TYPES
+		if (strcmp(args[i],"-fast_eo") ==0)
+			this->elim_order_type = GD_FAST_EO;
+		if (strcmp(args[i],"-all_eo") ==0)
+			this->elim_order_type = GD_ALL_EO;
 		if (strcmp(args[i], "-lexm") == 0)
 			this->elim_order_type = GD_LEXM_BFS;
 		if (strcmp(args[i], "-mcsm") == 0)

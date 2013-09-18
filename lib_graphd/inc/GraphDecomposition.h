@@ -98,14 +98,19 @@ extern "C" {
 #define     GD_AMD                  12
 #define     GD_MUL_MIN_DEGREE       13
 #define     GD_MINMAX_DEGREE        14
+#define		GD_FAST_EO				15
+#define		GD_ALL_EO				16
 
 //array of names for the elimination ordering routines defined above
 static const char EO_NAMES[][30] = {
-    "MinDegree", "MCS", "MCS-M", "LEX-M", "LEX-P", "MinFill", "PKT_sort", "Batch-MinFill", "MetisMMD", "MetisNodeND", "DEPRECATED" /*"MetisEdgeND"*/, "BetaOrdering", "AMDOrdering", "MultipleMinDegree", "MinMaxDegree", "Unknown"
+    "MinDegree", "MCS", "MCS-M", "LEX-M", "LEX-P", "MinFill", "PKT_sort", "Batch-MinFill", "MetisMMD", "MetisNodeND", 
+	"DEPRECATED" /*"MetisEdgeND"*/, "BetaOrdering", "AMDOrdering", "MultipleMinDegree", "MinMaxDegree", 
+	"FastHeuristics", "AllHeuristics",
+	"Unknown"
 };
 
 // Update the # of heuristics as new ones are added
-#define     GD_NUM_ELIM_HEURISTICS  15
+#define     GD_NUM_ELIM_HEURISTICS  17
 
 // Lower bound strategies
 #define     GD_MAX_MIN_DEGREE_LB    1

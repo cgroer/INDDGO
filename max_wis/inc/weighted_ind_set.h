@@ -46,7 +46,6 @@ int hamming_weight(unsigned long long xx);
 bool hamming_compare(const int_bigint *x,const int_bigint *y);
 void usage(const char *s);
 void create_WIS_graph(DP_info *info, Graph::VertexWeightedGraph *&G);
-void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G, TDTree **T, bool suppress_timing);
 void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G, TDTree **T);
 int reconstruct_solution(TDTree *T, list<int> *optimal_solution, const char *sol_file);
 void print_WIS_results(FILE *stream, TDTree *T, DP_info *info);

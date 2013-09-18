@@ -129,6 +129,12 @@ public:
                                    int algorithm, int start_v, bool triangulate);
     void find_elimination_ordering(Graph *g, vector<int> *ordering,
                                    int algorithm, bool triangulate);
+
+	// CSG 20130915 - try the fast heuristics - populate ordering with the best
+	// found and return the width.
+	int find_fast_ordering(Graph *G, vector<int> *ordering);
+	int find_fast_ordering(Graph *G, int start_v, vector<int> *ordering);
+
     #ifdef HAS_PARMETIS
     void parmetis_elimination_ordering(VertexWeightedGraph *mg, vector<int> &ordering,
                                        int algorithm, bool triangulate, MPI_Comm comm);

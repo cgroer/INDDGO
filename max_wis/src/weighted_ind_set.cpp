@@ -82,6 +82,10 @@ void usage(const char *s)
 		"\t                        in DIMACS file)\n"
 		"\t -sord <scotch ordering file> : reads in an elimination ordering\n"
 		"\t                                produced by Scotch\n"
+		"\t -fast_eo : runs the faster set of available heuristics and keeps\n"
+		"\t            the elimination ordering that leads to smallest width\n"
+		"\t -all_eo : runs all available heuristics and keeps the elimination\n"
+		"\t           ordering that leads to smallest width\n"
 		"\t --- Dynamic Programming Options ---\n"
 		"\t -nonniceDP : will use the non-nice Dynamic Programming routines\n"
 		"\t -root <root_node> : will set the TD's root node (default is 0)\n"
@@ -2693,7 +2697,6 @@ void create_WIS_graph(DP_info *info, Graph::VertexWeightedGraph *&G)
 
 }
 
-
 /**
 * Creates a tree decomposition for the provided tree and the DP options
 * contained in DP_info.
@@ -2701,23 +2704,11 @@ void create_WIS_graph(DP_info *info, Graph::VertexWeightedGraph *&G)
 void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 	TDTree **T)
 {
-	create_tree_decomposition(info, G, T, true);
-}
-
-/**
-* Creates a tree decomposition for the provided tree and the DP options
-* contained in DP_info.
-*/
-void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
-	TDTree **T, bool suppress_timing)
-{
 	// Create a copy of G to do the triangulation and elim order
 	Graph::GraphEOUtil eoutil;
 
 	if (!G)
-	{
-		return;
-	}
+		fatal_error("NULL Graph pointer passed to %s\n",__FUNCTION__);
 
 	Graph::VertexWeightedGraph H = *G;
 
@@ -2730,7 +2721,6 @@ void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 		printf("%s: MMD Lower Bound %d\n", info->DIMACS_file, lb);
 		lb = eoutil.get_tw_lower_bound(G, GD_MCS_LB, 0); 
 		printf("%s: MCS Lower Bound %d\n", info->DIMACS_file, lb);
-
 	}
 
 	(*T) = new TDTree(&H);
@@ -2744,9 +2734,7 @@ void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 	// Set the info pointer so we have access to the options
 	(*T)->info = info;
 
-	//	creating an instance of eoutils class
-
-	// Now read in the tree file if we have one
+	// Create the tree decomposition
 	if (info->read_tree)
 	{
 		// Read in the decomposition from a file
@@ -2756,66 +2744,75 @@ void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 	}
 	else
 	{
-		// Figure out how to create the tree
-		if (info->read_ordering)
+		bool created_EO = false;
+		// Create EO an then construct the tree
+		if(info->read_ordering && !created_EO)
 		{
 			read_ordering_file(info->ord_file, &ordering);
-			print_message(0, "Read in ordering\n");
-			print(1, ordering);
+			if(info->very_verbose)
+			{
+				print_message(0, "Read in ordering\n");
+				print(0, ordering);
+			}
+			created_EO=true;
 		}
-		else
+		if(info->read_scotch_ordering && !created_EO)
 		{
-			if (info->read_scotch_ordering)
+			read_SCOTCH_ordering_file(info->scotch_ord_file, &ordering);
+			if(info->very_verbose)
 			{
-				read_SCOTCH_ordering_file(info->scotch_ord_file, &ordering);
 				print_message(0, "Read in SCOTCH ordering\n");
-				print(1, ordering);
+				print(0, ordering);
 			}
-			else
-			{
-				// Create the ordering via a heuristic
-				// Create an ordering - if start_v not provided, find
-				// a good candidate
-				double start = clock();
-				if (!info->parmetis)
-				{
-					if (info->start_v == GD_UNDEFINED)
-						eoutil.find_elimination_ordering(&H, &ordering,
-						info->elim_order_type, false);
-					else
-						eoutil.find_elimination_ordering(&H, &ordering,
-						info->elim_order_type, info->start_v, false);
-				}
-				else
-				{
+			created_EO=true;
+		}
+		if(info->parmetis && !created_EO)
+		{
 #ifdef HAS_PARMETIS
-					MPI_Comm comm;
-					MPI_Comm_dup(MPI_COMM_WORLD, &comm);
-					eoutil.parmetis_elimination_ordering(&H, ordering, info->elim_order_type, false, comm);
+			MPI_Comm comm;
+			MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+			eoutil.parmetis_elimination_ordering(&H, ordering, info->elim_order_type, false, comm);
+			created_EO=true;
+#else
+			fatal_error("Need HAS_PARMETIS to be defined to run parmetis EO heuristic\n");
 #endif
-				}
+		}
+		// Look for fast eo
+		if(info->elim_order_type == GD_FAST_EO && !created_EO)
+		{
+			int best_width;
+			if(info->start_v==GD_UNDEFINED)
+				best_width=eoutil.find_fast_ordering(&H, &ordering);
+			else
+				best_width=eoutil.find_fast_ordering(&H, info->start_v, &ordering);
+			fprintf(stderr,"Found best width=%d\n",best_width);
+			created_EO=true;
+		}
+		// If we get here and don't have a tree or EO, then must be single heuristic
+		if(!created_EO)
+		{
+			if (info->start_v == GD_UNDEFINED)
+				eoutil.find_elimination_ordering(&H, &ordering,
+				info->elim_order_type, false);
+			else
+				eoutil.find_elimination_ordering(&H, &ordering,
+				info->elim_order_type, info->start_v, false);
+			created_EO=true;
+		}
+		// Make sure we have an EO/tree
+		if(!created_EO)
+			fatal_error("No elimination ordering created!\n");
 
-				if(!suppress_timing)
-					print_message(0, "%.2f:", (double) (clock() - start) / CLOCKS_PER_SEC);
-			}
-
-			// Write elimination ordering into a file
-			if (info->eorder)
-			{
-				int os = ordering.size();
-				FILE *ef = fopen(info->eorder, "w");
-				if (!ef)
-				{
-					FERROR("can not open %s for writing\n", info->eorder);
-					return;
-				}
-
-				for (int i = 0; i < os; i++)
-				{
-					fprintf (ef, "%d\n", ordering[i] + 1);
-				}
-				fclose (ef);
-			}
+		// Write elimination ordering into a file
+		if (info->eorder)
+		{
+			int os = ordering.size();
+			FILE *ef = fopen(info->eorder, "w");
+			if (!ef)
+				fatal_error("can not open %s for writing\n", info->eorder);
+			for (int i = 0; i < os; i++)
+				fprintf (ef, "%d\n", ordering[i] + 1);
+			fclose (ef);
 		}
 
 		if (info->very_verbose)
@@ -2827,10 +2824,9 @@ void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 
 		// Triangulate the graph for methods requiring it.
 		clock_t tri_start = clock(), tri_stop;
-		if(info->superetree){
-			//no need to triangulate; width set in construction.
+		if(info->superetree)
+			// no need to triangulate; width set in construction.
 			tri_stop = tri_start;	
-		}
 		else
 		{
 #if HAS_METIS
@@ -2839,214 +2835,181 @@ void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 			(*T)->width = eoutil.triangulate(&H, &ordering);
 #endif
 			tri_stop = clock();
-
 		}
-		if(!suppress_timing)
-			print_message(0, "%.2f:", (double) (tri_stop - tri_start) / CLOCKS_PER_SEC);
-
-
+		
 		// Now create the tree
 		info->start=clock();
 		if(info->superetree)
-		{
 			(*T)->construct_superetree(&ordering);
-		}
 		if (info->gavril)
-		{
 			(*T)->construct_gavril(&ordering);
-		}
-
 		if (info->BK)
-		{
 			(*T)->construct_BK(&ordering);
-		}
-
 		if (info->nice)
-		{
-			print_message(1, "nice\n");
 			(*T)->construct_knice(&ordering, (*T)->width, false);
-		}
-		info->stop=clock();
+	}
+	info->stop=clock();
 
-		//moved information about triangulation and width below construction since width in superetree is unknown until here.
-		if (info->verbose)
-		{
-			print_message(0, "Triangulation took %f secs\n",
-				(double) (tri_stop - tri_start) / CLOCKS_PER_SEC);
-			print_message(0, "Width=%d\n", (*T)->width);
-		}
-
-		if (info->width)
-		{
-			DEBUG("%s: Width=%d\n", info->DIMACS_file, (*T)->width);
-			return;
-		}
-
-
-		if(!suppress_timing)
-			print_message(0, "%.2f:", (double) (info->stop - info->start) / CLOCKS_PER_SEC);
-
-		if (info->verbose)
-		{
-			print_message(0, "Tree construction took %f secs\n",
-				(double) (info->stop - info->start) / CLOCKS_PER_SEC);
-		}
+	if (info->verbose)
+	{
+		print_message(0, "Tree construction took %f secs\n",
+			(double) (info->stop - info->start) / CLOCKS_PER_SEC);
 	}
 
 
 
-	if (!info->nice)
+if (!info->nice)
+{
+	// Root the tree
+	if (!info->asp_root && !info->child_root)
+		(*T)->root(info->root_node);
+	else
 	{
-		// Root the tree
-		if (!info->asp_root && !info->child_root)
-			(*T)->root(info->root_node);
-		else
-		{
-			// A rooting alg was chosen
-			if (info->asp_root)
-				(*T)->root_mintables(TD_ROOT_ASPVALL);
-			if (info->child_root)
-				(*T)->root_mintables(TD_ROOT_ALLCHILDREN);
-		}
+		// A rooting alg was chosen
+		if (info->asp_root)
+			(*T)->root_mintables(TD_ROOT_ASPVALL);
+		if (info->child_root)
+			(*T)->root_mintables(TD_ROOT_ALLCHILDREN);
 	}
+}
 
-	// Sort the bags
-	int num_tree_nodes=(int) (*T)->tree_nodes.size();
-	if(!info->superetree)//bags already sorted
+// Sort the bags
+int num_tree_nodes=(int) (*T)->tree_nodes.size();
+if(!info->superetree)//bags already sorted
+{
+	for (i = 0; i < num_tree_nodes; i++)
 	{
-		for (i = 0; i < num_tree_nodes; i++)
-		{
-			if ((*T)->tree_nodes[i])
-				(*T)->tree_nodes[i]->bag.sort();
-		}
+		if ((*T)->tree_nodes[i])
+			(*T)->tree_nodes[i]->bag.sort();
 	}
-	// Reset (*T)'s graph is the original, non-triangulated graph!
-	(*T)->G = G;
+}
+// Reset (*T)'s graph is the original, non-triangulated graph!
+(*T)->G = G;
 
-	// Make the tree nice now if requested
-	if (info->make_nice)
-		(*T)->make_nice();
+// Make the tree nice now if requested
+if (info->make_nice)
+	(*T)->make_nice();
 
-	// Refine the tree decomposition if requested
-	if (info->refine_td)
+// Refine the tree decomposition if requested
+if (info->refine_td)
+{
+	if (1) // for testing
 	{
-		if (1) // for testing
+		(*T)->write_DIMACS_file("pre_refinement.td");
+		if (info->make_histogram)
 		{
-			(*T)->write_DIMACS_file("pre_refinement.td");
-			if (info->make_histogram)
+			vector<int> counts((*T)->width + 2, 0);
+			for (i = 0; i < (int) (*T)->tree_nodes.size(); i++)
 			{
-				vector<int> counts((*T)->width + 2, 0);
-				for (i = 0; i < (int) (*T)->tree_nodes.size(); i++)
-				{
-					if ((*T)->tree_nodes[i] != NULL)
-						counts[(*T)->tree_nodes[i]->bag.size()]++;
-				}
-				printf("Histogram of bag sizes\n");
-				for (i = 1; i <= (*T)->width + 1; i++)
-				{
-					printf("%02d ", counts[i]);
-				}
-				printf("\n");
-				fflush(stdout);
+				if ((*T)->tree_nodes[i] != NULL)
+					counts[(*T)->tree_nodes[i]->bag.size()]++;
 			}
-		}
-		(*T)->refine();
-	}
-
-	// Write out the tree if desired
-	// Write out the tree if desired with root labelled 1, and rest
-	//labelled according to pre-order walk
-	if (info->write_ordered_tree)
-		(*T)->write_DIMACS_file(info->tree_outfile, true);
-	else if (info->write_tree)
-		(*T)->write_DIMACS_file(info->tree_outfile);
-
-	// Print out a histogram if desired
-	if (info->make_histogram)
-	{
-		vector<int> counts((*T)->width + 2, 0);
-		for (i = 0; i < (int) (*T)->tree_nodes.size(); i++)
-		{
-			if ((*T)->tree_nodes[i] != NULL)
-				counts[(*T)->tree_nodes[i]->bag.size()]++;
-		}
-		printf("Histogram of bag sizes\n");
-		for (i = 1; i <= (*T)->width + 1; i++)
-		{
-			printf("%02d ", counts[i]);
-		}
-		printf("\n");
-		fflush(stdout);
-	}
-
-	if (info->gviz)
-	{
-		char dimacs_tree_file[100];
-		// Create a non-labeled Graphviz output
-		sprintf(dimacs_tree_file, "%s.dimacs", info->gviz_file);
-		(*T)->write_DIMACS_file(dimacs_tree_file);
-		//(*T)->write_graphviz_file(true, info->gviz_file, GV_BAG_LABELS);
-		(*T)->write_graphviz_file(true, info->gviz_file, GV_COLORS);
-	}
-
-	// Verify the tree if this option was passed in
-	if (info->check)
-	{
-		if ((*T)->nice)
-		{
-			print_message(0, "Verifying tree\n");
-			if ((*T)->is_nice())
+			printf("Histogram of bag sizes\n");
+			for (i = 1; i <= (*T)->width + 1; i++)
 			{
-				// this calls verify()
-				printf("Nice TD is verified\n");
+				printf("%02d ", counts[i]);
 			}
-			else
-				fatal_error("Nice tree invalid!\n");
+			printf("\n");
+			fflush(stdout);
+		}
+	}
+	(*T)->refine();
+}
+
+// Write out the tree if desired
+// Write out the tree if desired with root labelled 1, and rest
+//labelled according to pre-order walk
+if (info->write_ordered_tree)
+	(*T)->write_DIMACS_file(info->tree_outfile, true);
+if (info->write_tree)
+	(*T)->write_DIMACS_file(info->tree_outfile);
+
+// Print out a histogram if desired
+if (info->make_histogram)
+{
+	vector<int> counts((*T)->width + 2, 0);
+	for (i = 0; i < (int) (*T)->tree_nodes.size(); i++)
+	{
+		if ((*T)->tree_nodes[i] != NULL)
+			counts[(*T)->tree_nodes[i]->bag.size()]++;
+	}
+	printf("Histogram of bag sizes\n");
+	for (i = 1; i <= (*T)->width + 1; i++)
+	{
+		printf("%02d ", counts[i]);
+	}
+	printf("\n");
+	fflush(stdout);
+}
+
+if (info->gviz)
+{
+	char dimacs_tree_file[100];
+	// Create a non-labeled Graphviz output
+	sprintf(dimacs_tree_file, "%s.dimacs", info->gviz_file);
+	(*T)->write_DIMACS_file(dimacs_tree_file);
+	//(*T)->write_graphviz_file(true, info->gviz_file, GV_BAG_LABELS);
+	(*T)->write_graphviz_file(true, info->gviz_file, GV_COLORS);
+}
+
+// Verify the tree if this option was passed in
+if (info->check)
+{
+	if ((*T)->nice)
+	{
+		print_message(0, "Verifying tree\n");
+		if ((*T)->is_nice())
+		{
+			// this calls verify()
+			printf("Nice TD is verified\n");
 		}
 		else
+			fatal_error("Nice tree invalid!\n");
+	}
+	else
+	{
+		// non-nice
+		if ((*T)->verify())
 		{
-			// non-nice
-			if ((*T)->verify())
-			{
-				printf("Non-Nice TD is verified\n");
-			}
-			else
-				fatal_error("Non-Nice tree invalid!\n");
+			printf("Non-Nice TD is verified\n");
 		}
+		else
+			fatal_error("Non-Nice tree invalid!\n");
 	}
+}
 
-	if (info->nonniceDP)
-	{
-		print_message(0, "Forcing non-nice DP!\n");
-		(*T)->nice = false;
-	}
+if (info->nonniceDP)
+{
+	print_message(0, "Forcing non-nice DP!\n");
+	(*T)->nice = false;
+}
 
-	// Determine how big the masks need to be based on the tree width
-	// CSG changing July 6!
-	// Width is 1 less than the largest bag! Then we need an extra word
-	// to handle a shift of BIGINT_WORD_SIZE!!
-	(*T)->num_mask_words = (int) ceil(
-		((double) (*T)->width + 2) / BIGINT_WORD_SIZE);
-	print_message(1, "width=%d; num_words=%d\n", (*T)->width,
-		(*T)->num_mask_words);
+// Determine how big the masks need to be based on the tree width
+// CSG changing July 6!
+// Width is 1 less than the largest bag! Then we need an extra word
+// to handle a shift of BIGINT_WORD_SIZE!!
+(*T)->num_mask_words = (int) ceil(
+	((double) (*T)->width + 2) / BIGINT_WORD_SIZE);
+print_message(1, "width=%d; num_words=%d\n", (*T)->width,
+	(*T)->num_mask_words);
 
-	// set T->num_mask_word in nodes, num_mask_words need to copy data such as nbr_mask_vec,
-	// child_intersection and parent position.
-	for (i = 0; i < (*T)->num_tree_nodes; i++)
-	{
-		if( (*T)->tree_nodes[i])
-			(*T)->tree_nodes[i]->set_num_mask_words((*T)->num_mask_words);
-	}
+// set T->num_mask_word in nodes, num_mask_words need to copy data such as nbr_mask_vec,
+// child_intersection and parent position.
+for (i = 0; i < (*T)->num_tree_nodes; i++)
+{
+	if( (*T)->tree_nodes[i])
+		(*T)->tree_nodes[i]->set_num_mask_words((*T)->num_mask_words);
+}
 
-	// Fill the bag vecs
-	(*T)->fill_bag_vecs();
+// Fill the bag vecs
+(*T)->fill_bag_vecs();
 
-	// Create the aux_info vector - for WIS, use this to contain the # of ind. sets
-	/// found when processing each tree node (invalid for nice nonleaf nodes since all ind.
-	// sets are not actually found in this case)
-	info->aux_info = new int[(*T)->num_tree_nodes];
-	for (i = 0; i < (*T)->num_tree_nodes; i++)
-		info->aux_info[i] = 0;
+// Create the aux_info vector - for WIS, use this to contain the # of ind. sets
+/// found when processing each tree node (invalid for nice nonleaf nodes since all ind.
+// sets are not actually found in this case)
+info->aux_info = new int[(*T)->num_tree_nodes];
+for (i = 0; i < (*T)->num_tree_nodes; i++)
+	info->aux_info[i] = 0;
 
 }
 

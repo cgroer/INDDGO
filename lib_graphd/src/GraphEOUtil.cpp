@@ -1620,7 +1620,7 @@ namespace Graph {
         for(i = 0; i < g->capacity; i++){
             // Note that degree[i] must be greater than the current width in order for g
             // node to possibly have more than width higher #'ed nbrs
-            if((g->nodes[i].label != GD_UNDEFINED) && (g->degree[i] > width) ){
+            if((g->nodes[i].label != GD_UNDEFINED) && (g->degree[i] > 0*width) ){
                 k = 0;
                 for(list<int>::iterator ii = g->nodes[i].nbrs.begin();
                     ii != g->nodes[i].nbrs.end(); ++ii){
@@ -1843,6 +1843,91 @@ namespace Graph {
         return;
     } // find_elimination_ordering
 
+	int GraphEOUtil::find_fast_ordering(Graph *G, vector<int> *ordering)
+	{
+		int num_heuristics;
+		int heuristics[10];
+		int best_width=GD_INFINITY;
+		int current_width;
+		vector<int> current_ordering(ordering->size());
+		Graph H;
+
+		heuristics[0]=GD_MIN_DEGREE;
+		heuristics[1]=GD_MIN_FILL;
+		heuristics[2]=GD_MUL_MIN_DEGREE;
+		heuristics[3]=GD_MINMAX_DEGREE;
+		heuristics[4]=GD_BATCH_MF;
+		heuristics[5]=GD_BETA;
+		num_heuristics=6;
+#if HAS_METIS
+		heuristics[6]=GD_METIS_MMD;
+		num_heuristics++;
+		heuristics[7]=GD_METIS_NODE_ND;
+		num_heuristics++;
+#endif
+#if HAS_AMD
+		heuristics[8]=GD_AMD;
+		num_heuristics++;
+#endif
+		for(int i=0;i<num_heuristics;i++)
+		{
+			// Need a copy for the triangulation
+			H=*G;
+			this->find_elimination_ordering(&H,&current_ordering, heuristics[i],false);
+			current_width = this->triangulate(&H, &current_ordering);
+			if(current_width<best_width)
+			{
+				best_width=current_width;
+				int size=(int)current_ordering.size();
+				for(int j=0;j<size;j++)
+					ordering->at(j)=current_ordering[j];
+			}
+			// Delete the triangulated graph
+			delete &H;
+		}
+		return best_width;
+	}
+
+	int GraphEOUtil::find_fast_ordering(Graph *G, int start_v, vector<int> *ordering)
+	{
+		int num_heuristics;
+		int heuristics[10];
+		int best_width=GD_INFINITY;
+		int current_width;
+		vector<int> current_ordering(ordering->size());
+		Graph H;
+
+		heuristics[0]=GD_MIN_DEGREE;
+		heuristics[1]=GD_MIN_FILL;
+		heuristics[2]=GD_MUL_MIN_DEGREE;
+		heuristics[3]=GD_MINMAX_DEGREE;
+		heuristics[4]=GD_BATCH_MF;
+		heuristics[5]=GD_BETA;
+		num_heuristics=6;
+#if HAS_METIS
+		heuristics[6]=GD_METIS_MMD;
+		num_heuristics++;
+		heuristics[7]=GD_METIS_NODE_ND;
+		num_heuristics++;
+#endif
+#if HAS_AMD
+		heuristics[8]=GD_AMD;
+		num_heuristics++;
+#endif
+		for(int i=0;i<num_heuristics;i++)
+		{
+			this->find_elimination_ordering(&H,&current_ordering, heuristics[i], start_v, false);
+			current_width = this->get_tree_width(G, &current_ordering);
+			if(current_width<best_width)
+			{
+				best_width=current_width;
+				int size=(int)current_ordering.size();
+				for(int j=0;j<size;j++)
+					ordering->at(j)=current_ordering[j];
+			}
+		}
+		return best_width;
+	}
     #ifdef HAS_PARMETIS
     void GraphEOUtil::parmetis_elimination_ordering(VertexWeightedGraph *g, vector<int> &orderingout,
                                                     int algorithm, bool triangulate, MPI_Comm comm){
