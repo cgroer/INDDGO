@@ -1905,7 +1905,7 @@ namespace Graph {
 		{
 			Graph H(*G);
 			this->find_elimination_ordering(&H,&current_ordering, heuristics[i], start_v, false);
-			current_width = this->get_tree_width(G, &current_ordering);
+			current_width = this->triangulate(G, &current_ordering);
 			if(current_width<best_width)
 			{
 				best_width=current_width;
