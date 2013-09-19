@@ -1850,7 +1850,7 @@ namespace Graph {
 		int best_width=GD_INFINITY;
 		int current_width;
 		vector<int> current_ordering(ordering->size());
-		Graph H;
+		Graph *H;
 
 		heuristics[0]=GD_MIN_DEGREE;
 		heuristics[1]=GD_MIN_FILL;
@@ -1872,7 +1872,7 @@ namespace Graph {
 		for(int i=0;i<num_heuristics;i++)
 		{
 			// Need a copy for the triangulation
-			H=*G;
+			Graph H(*G);
 			this->find_elimination_ordering(&H,&current_ordering, heuristics[i],false);
 			current_width = this->triangulate(&H, &current_ordering);
 			if(current_width<best_width)
