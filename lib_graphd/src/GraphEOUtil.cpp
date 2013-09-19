@@ -1675,7 +1675,8 @@ namespace Graph {
      */
     void GraphEOUtil::find_elimination_ordering(Graph *g,
                                                 vector<int> *ordering, int algorithm, int start_v, bool triangulate){
-        // Valid algorithms: GD_MIN_DEGREE, GD_MCS, GD_MCSM, GD_LEXM_BFS, GD_LEXP_BFS, GD_MIN_FILL, PKT_SORT, GD_BATCH_MF, GD_MINMAX_DEGREE
+        // Valid algorithms: GD_MIN_DEGREE, GD_MCS, GD_MCSM, GD_LEXM_BFS, GD_LEXP_BFS, GD_MIN_FILL, PKT_SORT, 
+		// GD_BATCH_MF, GD_MINMAX_DEGREE
 
         if(!g->canonical){
             print_message(0, "%s:  Graph must be in canonical form\n",
@@ -1850,7 +1851,6 @@ namespace Graph {
 		int best_width=GD_INFINITY;
 		int current_width;
 		vector<int> current_ordering(ordering->size());
-		Graph *H;
 
 		heuristics[0]=GD_MIN_DEGREE;
 		heuristics[1]=GD_MIN_FILL;
@@ -1882,8 +1882,6 @@ namespace Graph {
 				for(int j=0;j<size;j++)
 					ordering->at(j)=current_ordering[j];
 			}
-			// Delete the triangulated graph
-			delete &H;
 		}
 		return best_width;
 	}
@@ -1895,27 +1893,17 @@ namespace Graph {
 		int best_width=GD_INFINITY;
 		int current_width;
 		vector<int> current_ordering(ordering->size());
-		Graph H;
 
 		heuristics[0]=GD_MIN_DEGREE;
 		heuristics[1]=GD_MIN_FILL;
 		heuristics[2]=GD_MUL_MIN_DEGREE;
 		heuristics[3]=GD_MINMAX_DEGREE;
 		heuristics[4]=GD_BATCH_MF;
-		heuristics[5]=GD_BETA;
-		num_heuristics=6;
-#if HAS_METIS
-		heuristics[6]=GD_METIS_MMD;
-		num_heuristics++;
-		heuristics[7]=GD_METIS_NODE_ND;
-		num_heuristics++;
-#endif
-#if HAS_AMD
-		heuristics[8]=GD_AMD;
-		num_heuristics++;
-#endif
+		num_heuristics=5;
+
 		for(int i=0;i<num_heuristics;i++)
 		{
+			Graph H(*G);
 			this->find_elimination_ordering(&H,&current_ordering, heuristics[i], start_v, false);
 			current_width = this->get_tree_width(G, &current_ordering);
 			if(current_width<best_width)
