@@ -1860,13 +1860,13 @@ namespace Graph {
 		heuristics[5]=GD_BETA;
 		num_heuristics=6;
 #if HAS_METIS
-		heuristics[6]=GD_METIS_MMD;
+		heuristics[num_heuristics]=GD_METIS_MMD;
 		num_heuristics++;
-		heuristics[7]=GD_METIS_NODE_ND;
+		heuristics[num_heuristics]=GD_METIS_NODE_ND;
 		num_heuristics++;
 #endif
 #if HAS_AMD
-		heuristics[8]=GD_AMD;
+		heuristics[num_heuristics]=GD_AMD;
 		num_heuristics++;
 #endif
 		for(int i=0;i<num_heuristics;i++)
@@ -1899,6 +1899,87 @@ namespace Graph {
 		heuristics[2]=GD_MUL_MIN_DEGREE;
 		heuristics[3]=GD_MINMAX_DEGREE;
 		heuristics[4]=GD_BATCH_MF;
+		num_heuristics=5;
+
+		for(int i=0;i<num_heuristics;i++)
+		{
+			Graph H(*G);
+			this->find_elimination_ordering(&H,&current_ordering, heuristics[i], start_v, false);
+			current_width = this->triangulate(G, &current_ordering);
+			if(current_width<best_width)
+			{
+				best_width=current_width;
+				int size=(int)current_ordering.size();
+				for(int j=0;j<size;j++)
+					ordering->at(j)=current_ordering[j];
+			}
+		}
+		return best_width;
+	}
+
+	int GraphEOUtil::find_best_ordering(Graph *G, vector<int> *ordering)
+	{
+		int num_heuristics;
+		int heuristics[10];
+		int best_width=GD_INFINITY;
+		int current_width;
+		vector<int> current_ordering(ordering->size());
+
+		heuristics[0]=GD_MIN_DEGREE;
+		heuristics[1]=GD_MIN_FILL;
+		heuristics[2]=GD_MUL_MIN_DEGREE;
+		heuristics[3]=GD_MINMAX_DEGREE;
+		heuristics[4]=GD_BATCH_MF;
+		heuristics[5]=GD_BETA;
+		heuristics[6]=GD_LEXM_BFS;
+		heuristics[7]=GD_LEXP_BFS;
+		heuristics[8]=GD_MCS;
+		heuristics[9]=GD_MCSM;
+		num_heuristics=10;
+#if HAS_METIS
+		heuristics[num_heuristics]=GD_METIS_MMD;
+		num_heuristics++;
+		heuristics[num_heuristics]=GD_METIS_NODE_ND;
+		num_heuristics++;
+#endif
+#if HAS_AMD
+		heuristics[num_heuristics]=GD_AMD;
+		num_heuristics++;
+#endif
+		for(int i=0;i<num_heuristics;i++)
+		{
+			// Need a copy for the triangulation
+			Graph H(*G);
+			this->find_elimination_ordering(&H,&current_ordering, heuristics[i],false);
+			current_width = this->triangulate(&H, &current_ordering);
+			if(current_width<best_width)
+			{
+				best_width=current_width;
+				int size=(int)current_ordering.size();
+				for(int j=0;j<size;j++)
+					ordering->at(j)=current_ordering[j];
+			}
+		}
+		return best_width;
+	}
+
+	int GraphEOUtil::find_best_ordering(Graph *G, int start_v, vector<int> *ordering)
+	{
+		int num_heuristics;
+		int heuristics[10];
+		int best_width=GD_INFINITY;
+		int current_width;
+		vector<int> current_ordering(ordering->size());
+
+		heuristics[0]=GD_MIN_DEGREE;
+		heuristics[1]=GD_MIN_FILL;
+		heuristics[2]=GD_MUL_MIN_DEGREE;
+		heuristics[3]=GD_MINMAX_DEGREE;
+		heuristics[4]=GD_BATCH_MF;
+		heuristics[6]=GD_LEXM_BFS;
+		heuristics[7]=GD_LEXP_BFS;
+		heuristics[8]=GD_MCS;
+		heuristics[9]=GD_MCSM;
 		num_heuristics=5;
 
 		for(int i=0;i<num_heuristics;i++)

@@ -2788,6 +2788,17 @@ void create_tree_decomposition(DP_info *info, Graph::VertexWeightedGraph *G,
 			fprintf(stderr,"Found best width=%d\n",best_width);
 			created_EO=true;
 		}
+		// Look for fast eo
+		if(info->elim_order_type == GD_ALL_EO && !created_EO)
+		{
+			int best_width;
+			if(info->start_v==GD_UNDEFINED)
+				best_width=eoutil.find_best_ordering(&H, &ordering);
+			else
+				best_width=eoutil.find_best_ordering(&H, info->start_v, &ordering);
+			fprintf(stderr,"Found best width=%d\n",best_width);
+			created_EO=true;
+		}
 		// If we get here and don't have a tree or EO, then must be single heuristic
 		if(!created_EO)
 		{

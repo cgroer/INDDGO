@@ -135,6 +135,10 @@ public:
 	int find_fast_ordering(Graph *G, vector<int> *ordering);
 	int find_fast_ordering(Graph *G, int start_v, vector<int> *ordering);
 
+	// Run all possible heuristics - could be slow!!
+	int find_best_ordering(Graph *G, vector<int> *ordering);
+	int find_best_ordering(Graph *G, int start_v, vector<int> *ordering);
+
     #ifdef HAS_PARMETIS
     void parmetis_elimination_ordering(VertexWeightedGraph *mg, vector<int> &ordering,
                                        int algorithm, bool triangulate, MPI_Comm comm);
