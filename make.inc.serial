@@ -8,7 +8,7 @@
 # This should be a full path to the root directory for INDDGO.
 # (i.e. the parent of lib_graphd, libtree_d, madness, wis, etc.)
 #
-SRC_DIR = 
+SRC_DIR = /home/cgroer/INDDGO
 
 #----------------------------------------------------------------
 # REQUIRED USER-SUPPLIED OPTIONS
@@ -32,6 +32,9 @@ HAS_METIS	= 0
 HAS_IGRAPH	= 0
 HAS_GMP		= 0
 HAS_GTEST	= 0
+# CPLEX and GLPK are need for the utility CPX_solve_wis only
+HAS_CPLEX	= 0
+HAS_GLPK	= 0
 # Set whether serial or parallel version is desired for WIS.
 IS_PARALLEL	= 0
 HAS_MADNESS	= 0
@@ -60,6 +63,21 @@ PARMETIS_LIB_DIR =
 METIS_SRC_DIR  = #FILL IN
 METIS_LIB_DIR = #FILL IN
 
+
+
+# location of libcplex.a
+CPLEX_LIB_DIR = #FILL IN
+# Example: -L/opt/ibm/ILOG/CPLEX_Studio125/cplex/lib/x86-64_sles10_4.1/static_pic/
+# location of ilcplex directory (include is ilcplex/cplex.h)
+CPLEX_INC_DIR = #FILL IN
+# Example: -I/opt/ibm/ILOG/CPLEX_Studio125/cplex/include/
+
+# location of libglpk.a
+GLPK_LIB_DIR = #FILL IN
+# Example: -L/usr/local/lib/
+# location of glpk.h
+GLPK_INC_DIR = #FILL IN
+# Example: -I/usr/local/include/
 
 IGRAPH = 
 IGRAPH_INSTALL_DIR = $(IGRAPH)/deploy
